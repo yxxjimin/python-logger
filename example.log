@@ -1,0 +1,5 @@
+2024-12-14 01:26:02 KST - DEBUG    - [root]: Initialized database connection pool with 10 connections. (main.py:7)
+2024-12-14 01:26:02 KST - INFO     - [root]: Server started successfully on port 8080 (main.py:8)
+2024-12-14 01:26:02 KST - WARNING  - [root]: Slow query detected: execution time 3.8 seconds (main.py:9)
+2024-12-14 01:26:02 KST - ERROR    - [root]: Failed to insert record into `orders` table. Integrity constraint violated (main.py:10)
+2024-12-14 01:26:02 KST - CRITICAL - [root]: Out-of-memory error occurred while processing large request (main.py:11)
