@@ -1,7 +1,68 @@
+import json
 import logging
 import sys
 from copy import copy
-from typing import Literal
+from typing import Literal, Self
+    
+
+class Logger(logging.Logger):
+    _fmt = '%(asctime)s - %(levelprefix)8s - [%(name)s]: %(message)s (%(filename)s:%(lineno)d)'
+    _datefmt = '%Y-%m-%d %H:%M:%S %Z'
+
+    def __init__(self, name):
+        super().__init__(name)
+
+    @classmethod
+    def get_logger(
+        cls,
+        name: str,
+        logging_level: int = logging.DEBUG,
+        filename: str | None = None,
+    ) -> Self:
+        logger = cls(name)
+        logger.setLevel(logging_level)
+        logger.addHandler(cls._get_stream_handler())
+
+        if filename:
+            logger.add_file_handler(filename)
+
+        return logger
+
+    def add_file_handler(
+        self,
+        filename: str
+    ) -> Self:
+        self.addHandler(self._get_file_handler(filename))
+        return self
+    
+    def add_json_handler(
+        self,
+        filename: str
+    ) -> Self:
+        hdlr = self._get_file_handler(filename)
+        hdlr.setFormatter(_JSONFormatter())
+        self.addHandler(hdlr)
+        return self
+
+    @classmethod
+    def _get_stream_handler(cls) -> logging.StreamHandler:
+        hdlr = logging.StreamHandler(stream=sys.stdout)
+        hdlr.setFormatter(cls._get_color_formatter(use_colors=True))
+        return hdlr
+    
+    @classmethod
+    def _get_file_handler(cls, filename: str) -> logging.FileHandler:
+        hdlr = logging.FileHandler(filename)
+        hdlr.setFormatter(cls._get_color_formatter(use_colors=False))
+        return hdlr
+
+    @classmethod
+    def _get_color_formatter(cls, use_colors: bool) -> logging.Formatter:
+        return _ColorFormatter(cls._fmt, cls._datefmt, use_colors=use_colors)
+
+    @classmethod
+    def _get_json_formatter(cls) -> logging.Formatter:
+        return _JSONFormatter()
 
 
 class _ColorFormatter(logging.Formatter):
@@ -43,38 +104,14 @@ class _ColorFormatter(logging.Formatter):
         return super().formatMessage(recordcopy)
 
 
-class Logger:
-    _fmt = '%(asctime)s - %(levelprefix)8s - [%(name)s]: %(message)s (%(filename)s:%(lineno)d)'
-    _datefmt = '%Y-%m-%d %H:%M:%S %Z'
-
-    @classmethod
-    def _get_formatter(cls, use_colors: bool) -> logging.Formatter:
-        return _ColorFormatter(cls._fmt, cls._datefmt, use_colors=use_colors)
-
-    @classmethod
-    def _get_stream_handler(cls) -> logging.StreamHandler:
-        stream_handler = logging.StreamHandler(stream=sys.stdout)
-        stream_handler.setFormatter(cls._get_formatter(use_colors=True))
-        return stream_handler
-    
-    @classmethod
-    def _get_file_handler(cls, filename: str) -> logging.FileHandler:
-        file_handler = logging.FileHandler(filename)
-        file_handler.setFormatter(cls._get_formatter(use_colors=False))
-        return file_handler
-
-    @classmethod
-    def get_logger(
-        cls,
-        name: str, 
-        logging_level: int = logging.DEBUG,
-        filename: str | None = None,
-    ) -> logging.Logger:
-        logger = logging.getLogger(name)
-        logger.setLevel(logging_level)
-        logger.addHandler(cls._get_stream_handler())
-
-        if filename:
-            logger.addHandler(cls._get_file_handler(filename))
-
-        return logger
+class _JSONFormatter(logging.Formatter):
+    def format(self, record: logging.LogRecord) -> str:
+        return json.dumps({
+            'asctime': record.asctime,
+            'levelname': record.levelname,
+            'levelno': record.levelno,
+            'name': record.name,
+            'message': record.message,
+            'filename': record.filename,
+            'lineno': record.lineno,
+        }, indent=2)
